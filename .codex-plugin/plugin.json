@@ -1,7 +1,7 @@
 {
   "name": "cc-orchestrator",
   "version": "0.1.0",
-  "description": "Transparent Claude Code delegation for Codex with task-chain sessions, audit records, and mandatory Codex verification.",
+  "description": "Codex-led planning with transparent, provider-neutral Claude Code delegation, task-chain sessions, audits, and mandatory verification.",
   "author": {
     "name": "LLLzijian",
     "email": "LLLzijian@outlook.com",
@@ -20,8 +20,8 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "CC Orchestrator",
-    "shortDescription": "Transparent Claude Code workers for Codex",
-    "longDescription": "Let Codex delegate bounded leaf tasks to Claude Code with visible receipts, task-chain session continuity, durable audit records, and a required Codex verification handoff.",
+    "shortDescription": "Codex planning, transparent Claude execution",
+    "longDescription": "Keep Codex for planning and verification while delegating bounded work to your configured Claude Code provider with visible receipts, session continuity, durable audits, and a required acceptance handoff.",
     "developerName": "LLLzijian",
     "category": "Coding",
     "capabilities": [
