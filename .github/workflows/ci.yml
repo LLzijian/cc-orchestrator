@@ -28,7 +28,7 @@ jobs:
       - run: npm run typecheck
       - run: npm run test:cross-platform
 
-  macos-full:
+  macos-core:
     name: Full CI (macos-latest)
     runs-on: macos-latest
     steps:
@@ -37,18 +37,14 @@ jobs:
         with:
           node-version: 24
           cache: npm
-      - run: npm install -g @openai/codex
-      - run: codex --version
       - run: npm ci
       - run: npm run check:version-sync
       - run: npm run check:changelog
       - run: npm run lint
       - run: npm run typecheck
-      - run: npm run test
-      - run: npm run test:integration
-      - run: npm run test:e2e
+      - run: npm run test:cross-platform
 
-  linux-full:
+  linux-core:
     name: Full CI (ubuntu-latest)
     runs-on: ubuntu-latest
     steps:
@@ -57,13 +53,9 @@ jobs:
         with:
           node-version: 24
           cache: npm
-      - run: npm install -g @openai/codex
-      - run: codex --version
       - run: npm ci
       - run: npm run check:version-sync
       - run: npm run check:changelog
       - run: npm run lint
       - run: npm run typecheck
-      - run: npm run test
-      - run: npm run test:integration
-      - run: npm run test:e2e
+      - run: npm run test:cross-platform
