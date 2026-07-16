@@ -22,7 +22,7 @@ const ROOT_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), ".."
 
 function isExplicitClaudeStatusRequest(prompt) {
   const text = String(prompt ?? "").toLowerCase();
-  return text.includes("$cc:status") || text.includes("$cc:result");
+  return text.includes("$cc-orchestrator:status") || text.includes("$cc-orchestrator:result");
 }
 
 function summarizeJob(job) {
@@ -42,8 +42,8 @@ function buildAdditionalContext(jobs) {
 
   const guidance =
     jobs.length === 1
-      ? `Before handling the new request, briefly mention that ${jobs[0].id} finished and ask whether the user wants to inspect its result first or continue with the new request. If they want the result, direct them to \`$cc:result ${jobs[0].id}\`. If the user is clearly asking about this finished work already, answer that directly instead of asking again. Do not bring this completion up again automatically after this turn.`
-      : "Before handling the new request, briefly mention that these Claude Code jobs finished and ask whether the user wants to inspect them first or continue with the new request. If they want to inspect them, direct them to `$cc:status` first, then `$cc:result <job-id>` for a specific finished job. If the user is clearly asking about this finished work already, answer that directly instead of asking again. Do not bring these completions up again automatically after this turn.";
+      ? `Before handling the new request, briefly mention that ${jobs[0].id} finished and ask whether the user wants to inspect its result first or continue with the new request. If they want the result, direct them to \`$cc-orchestrator:result ${jobs[0].id}\`. If the user is clearly asking about this finished work already, answer that directly instead of asking again. Do not bring this completion up again automatically after this turn.`
+      : "Before handling the new request, briefly mention that these Claude Code jobs finished and ask whether the user wants to inspect them first or continue with the new request. If they want to inspect them, direct them to `$cc-orchestrator:status` first, then `$cc-orchestrator:result <job-id>` for a specific finished job. If the user is clearly asking about this finished work already, answer that directly instead of asking again. Do not bring these completions up again automatically after this turn.";
 
   return [
     intro,

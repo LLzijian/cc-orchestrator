@@ -128,7 +128,26 @@ function formatClaudeResumeCommand(job, storedJob = null) {
 }
 
 function formatClaudeSkillCommand(skill, jobId = null) {
-  return jobId ? `$cc:${skill} ${jobId}` : `$cc:${skill}`;
+  return jobId
+    ? `$cc-orchestrator:${skill} ${jobId}`
+    : `$cc-orchestrator:${skill}`;
+}
+
+function renderCodexVerification(job, storedJob = null) {
+  if ((storedJob?.jobClass ?? job?.jobClass) !== "task") return "";
+  const verification = storedJob?.codexVerification ?? job?.codexVerification;
+  const status = verification?.status ?? "pending";
+  const actualModels = Object.keys(storedJob?.result?.modelUsage ?? {});
+  const lines = [""];
+  if (actualModels.length) lines.push(`Actual model: ${actualModels.join(", ")}`);
+  lines.push(`Codex verification: ${status}`);
+  if (verification?.evidence) lines.push(`Evidence: ${verification.evidence}`);
+  if (status === "pending" && job?.id) {
+    lines.push(
+      `Required: inspect the diff, run the contract checks, then use \`$cc-orchestrator:verify ${job.id}\`.`
+    );
+  }
+  return `${lines.join("\n")}\n`;
 }
 
 function formatMarkdownLink(label, target) {
@@ -360,12 +379,14 @@ export function renderStoredJobResult(job, storedJob) {
   const storedOutput = normalizeStoredOutput(getStoredJobOutput(storedJob));
   if (storedOutput) {
     const output = storedOutput;
-    if (!claudeSessionId && !ownerSessionId) return output;
+    if (!claudeSessionId && !ownerSessionId) {
+      return `${output}${renderCodexVerification(job, storedJob)}`;
+    }
     let suffix = "\n";
     if (claudeSessionId) suffix += `Claude Code session: ${claudeSessionId}\n`;
     if (ownerSessionId && ownerSessionId !== claudeSessionId) suffix += `Owning Codex session: ${ownerSessionId}\n`;
     if (resumeCmd) suffix += `Resume: ${resumeCmd}\n`;
-    return `${output}${suffix}`;
+    return `${output}${suffix}${renderCodexVerification(job, storedJob)}`;
   }
   const lines = [`# ${job.title ?? "Claude Code Result"}`, "", `Job: ${job.id}`, `Status: ${job.status}`];
   if (claudeSessionId) lines.push(`Claude Code session: ${claudeSessionId}`);
@@ -375,7 +396,7 @@ export function renderStoredJobResult(job, storedJob) {
   if (job.errorMessage) lines.push("", job.errorMessage);
   else if (storedJob?.errorMessage) lines.push("", storedJob.errorMessage);
   else lines.push("", "No captured result payload was stored for this job.");
-  return `${lines.join("\n").trimEnd()}\n`;
+  return `${lines.join("\n").trimEnd()}\n${renderCodexVerification(job, storedJob)}`;
 }
 
 export function renderCancelReport(job) {
@@ -383,6 +404,6 @@ export function renderCancelReport(job) {
   if (job.title) lines.push(`- Title: ${job.title}`);
   if (job.summary) lines.push(`- Summary: ${job.summary}`);
   if (job.status === "cancel_failed") lines.push(`- Warning: Process group may still be alive. Manual cleanup: kill -9 -${job.pgid ?? job.pid}`);
-  lines.push("- Check `$cc:status` for the updated queue.");
+  lines.push("- Check `$cc-orchestrator:status` for the updated queue.");
   return `${lines.join("\n").trimEnd()}\n`;
 }

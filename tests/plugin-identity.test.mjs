@@ -59,10 +59,10 @@ describe("plugin identity helpers", () => {
     const codexHome = fs.mkdtempSync(path.join(os.tmpdir(), "cc-plugin-identity-"));
     tempDirs.push(codexHome);
 
-    fs.mkdirSync(path.join(codexHome, "plugins", "cache", "local-plugins", "cc", "local"), {
+    fs.mkdirSync(path.join(codexHome, "plugins", "cache", "local-plugins", "cc-orchestrator", "local"), {
       recursive: true,
     });
-    fs.mkdirSync(path.join(codexHome, "plugins", "cache", "sendbird", "cc", "1.0.8"), {
+    fs.mkdirSync(path.join(codexHome, "plugins", "cache", "sendbird", "cc-orchestrator", "1.0.8"), {
       recursive: true,
     });
 
@@ -87,7 +87,7 @@ describe("plugin identity helpers", () => {
       `${pluginConfigHeader("sendbird")}\nenabled = true\n`,
       "utf8"
     );
-    fs.mkdirSync(path.join(codexHome, "plugins", "cache", "sendbird", "cc", "1.0.9"), {
+    fs.mkdirSync(path.join(codexHome, "plugins", "cache", "sendbird", "cc-orchestrator", "1.0.9"), {
       recursive: true,
     });
 

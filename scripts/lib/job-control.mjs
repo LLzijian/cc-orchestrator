@@ -242,6 +242,6 @@ export function resolveCancelableJob(cwd, reference) {
     return { workspaceRoot, job: selected };
   }
   if (activeJobs.length === 1) return { workspaceRoot, job: activeJobs[0] };
-  if (activeJobs.length > 1) throw new Error("Multiple Claude Code jobs are active. Pass a job id to $cc:cancel.");
+  if (activeJobs.length > 1) throw new Error("Multiple Claude Code jobs are active. Pass a job id to $cc-orchestrator:cancel.");
   throw new Error("No active Claude Code jobs to cancel.");
 }

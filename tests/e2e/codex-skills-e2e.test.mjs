@@ -1184,7 +1184,7 @@ function readClaudeInvocations(logFile) {
 }
 
 describe("Codex rescue-skill E2E", () => {
-  it("routes $cc:rescue through the built-in rescue subagent, the companion task runtime, and the fake Claude CLI", async (t) => {
+  it("routes $cc-orchestrator:rescue through the built-in rescue subagent, the companion task runtime, and the fake Claude CLI", async (t) => {
     if (!codexAvailable()) {
       t.skip("codex CLI is not available in this environment");
       return;
@@ -1192,7 +1192,7 @@ describe("Codex rescue-skill E2E", () => {
 
     const testEnv = createEnvironment();
     const taskPrompt = "codex-rescue-e2e foreground delay=10";
-    const userRequest = "$cc:rescue --wait say hello from codex e2e";
+    const userRequest = "$cc-orchestrator:rescue --wait say hello from codex e2e";
     const provider = startMockProvider({
       taskPrompt,
       userRequest,
@@ -1257,7 +1257,7 @@ describe("Codex rescue-skill E2E", () => {
     }
   });
 
-  it("defaults $cc:rescue without execution flags to the foreground companion path", async (t) => {
+  it("defaults $cc-orchestrator:rescue without execution flags to the foreground companion path", async (t) => {
     if (!codexAvailable()) {
       t.skip("codex CLI is not available in this environment");
       return;
@@ -1265,7 +1265,7 @@ describe("Codex rescue-skill E2E", () => {
 
     const testEnv = createEnvironment();
     const taskPrompt = "codex-rescue-e2e default-foreground delay=10";
-    const userRequest = "$cc:rescue say hello from codex e2e without flags";
+    const userRequest = "$cc-orchestrator:rescue say hello from codex e2e without flags";
     const provider = startMockProvider({
       taskPrompt,
       userRequest,
@@ -1324,8 +1324,8 @@ describe("Codex rescue-skill E2E", () => {
     const testEnv = createEnvironment();
     const reservedJobId = "task-background-steer-123";
     const taskPrompt = "codex-rescue-e2e background-notify delay=10";
-    const userRequest = "$cc:rescue --background say hello from codex e2e in background";
-    const notificationMessage = `Background Claude Code rescue finished. Open it with $cc:result ${reservedJobId}.`;
+    const userRequest = "$cc-orchestrator:rescue --background say hello from codex e2e in background";
+    const notificationMessage = `Background Claude Code rescue finished. Open it with $cc-orchestrator:result ${reservedJobId}.`;
     const provider = startMockProvider({
       taskPrompt,
       userRequest,
@@ -1376,7 +1376,7 @@ describe("Codex rescue-skill E2E", () => {
 
     const testEnv = createEnvironment();
     const taskPrompt = "codex-rescue-e2e multiline delay=10";
-    const userRequest = "$cc:rescue --wait /simplify";
+    const userRequest = "$cc-orchestrator:rescue --wait /simplify";
     const provider = startMockProvider({
       taskPrompt,
       userRequest,
@@ -1417,7 +1417,7 @@ describe("Codex rescue-skill E2E", () => {
 
     const testEnv = createEnvironment();
     const taskPrompt = "codex-rescue-e2e builtin-agent delay=10";
-    const userRequest = "$cc:rescue --builtin-agent --wait say hello from codex e2e";
+    const userRequest = "$cc-orchestrator:rescue --builtin-agent --wait say hello from codex e2e";
     const provider = startMockProvider({
       taskPrompt,
       userRequest,
@@ -1474,7 +1474,7 @@ describe("Codex rescue-skill E2E", () => {
 
     const testEnv = createEnvironment();
     const initialTaskPrompt = "codex-rescue-e2e builtin-agent initial delay=10";
-    const initialRequest = "$cc:rescue --builtin-agent --wait say hello from codex e2e";
+    const initialRequest = "$cc-orchestrator:rescue --builtin-agent --wait say hello from codex e2e";
     let provider = startMockProvider({
       taskPrompt: initialTaskPrompt,
       userRequest: initialRequest,
@@ -1508,7 +1508,7 @@ describe("Codex rescue-skill E2E", () => {
 
     const followupTaskPrompt = "only fix the quoting issue and keep everything else";
     const followupRequest =
-      "$cc:rescue --builtin-agent --wait --resume only fix the quoting issue and keep everything else";
+      "$cc-orchestrator:rescue --builtin-agent --wait --resume only fix the quoting issue and keep everything else";
     provider = startMockProvider({
       taskPrompt: followupTaskPrompt,
       userRequest: followupRequest,
@@ -1560,36 +1560,36 @@ describe("Codex rescue-skill E2E", () => {
     {
       name: "a slash-style rescue request",
       taskPrompt: "/simplify make the output compact",
-      userRequest: "$cc:rescue --builtin-agent --wait /simplify make the output compact",
+      userRequest: "$cc-orchestrator:rescue --builtin-agent --wait /simplify make the output compact",
     },
     {
       name: "a quoted literal rescue request",
       taskPrompt: "return exactly 'foo \"bar\" baz'",
-      userRequest: "$cc:rescue --builtin-agent --wait return exactly 'foo \"bar\" baz'",
+      userRequest: "$cc-orchestrator:rescue --builtin-agent --wait return exactly 'foo \"bar\" baz'",
     },
     {
       name: "a multiline rescue request",
       taskPrompt: "output exactly:\nline 1\n\nline 2\nline 3",
       userRequest:
-        "$cc:rescue --builtin-agent --wait output exactly:\nline 1\n\nline 2\nline 3",
+        "$cc-orchestrator:rescue --builtin-agent --wait output exactly:\nline 1\n\nline 2\nline 3",
     },
     {
       name: "a mixed-language rescue request",
       taskPrompt: "한국어 2줄 + English 1 line 형식으로 답해줘",
       userRequest:
-        "$cc:rescue --builtin-agent --wait 한국어 2줄 + English 1 line 형식으로 답해줘",
+        "$cc-orchestrator:rescue --builtin-agent --wait 한국어 2줄 + English 1 line 형식으로 답해줘",
     },
     {
       name: "a follow-up style rescue request",
       taskPrompt: "keep going from the last fix and make it clean",
       userRequest:
-        "$cc:rescue --builtin-agent --wait keep going from the last fix and make it clean",
+        "$cc-orchestrator:rescue --builtin-agent --wait keep going from the last fix and make it clean",
     },
     {
       name: "an ambiguous rescue request",
       taskPrompt: "take care of the thing from earlier",
       userRequest:
-        "$cc:rescue --builtin-agent --wait take care of the thing from earlier",
+        "$cc-orchestrator:rescue --builtin-agent --wait take care of the thing from earlier",
     },
   ]) {
     it(`preserves ${scenario.name} through the experimental built-in path`, async (t) => {
@@ -1649,7 +1649,7 @@ describe("Codex rescue-skill E2E", () => {
 });
 
 describe("Codex direct-skill E2E", () => {
-  it("uses the installed plugin review skill without running $cc:setup first", async (t) => {
+  it("uses the installed plugin review skill without running $cc-orchestrator:setup first", async (t) => {
     if (!codexAvailable()) {
       t.skip("codex CLI is not available in this environment");
       return;
@@ -1667,7 +1667,7 @@ describe("Codex direct-skill E2E", () => {
 
     const pluginRoot = installPlugin(testEnv);
 
-    const userRequest = "$cc:review --wait --scope working-tree --model haiku";
+    const userRequest = "$cc-orchestrator:review --wait --scope working-tree --model haiku";
     const companionScript = path.join(pluginRoot, "scripts", "claude-companion.mjs");
     const provider = startDirectSkillProvider({
       userRequest,
@@ -1700,7 +1700,7 @@ describe("Codex direct-skill E2E", () => {
     }
   });
 
-  it("routes $cc:review --wait through the companion review command with forwarded scope and model", async (t) => {
+  it("routes $cc-orchestrator:review --wait through the companion review command with forwarded scope and model", async (t) => {
     if (!codexAvailable()) {
       t.skip("codex CLI is not available in this environment");
       return;
@@ -1716,7 +1716,7 @@ describe("Codex direct-skill E2E", () => {
       "utf8"
     );
 
-    const userRequest = "$cc:review --wait --scope working-tree --model haiku";
+    const userRequest = "$cc-orchestrator:review --wait --scope working-tree --model haiku";
     const provider = startDirectSkillProvider({
       userRequest,
       expectedNeedles: ["Claude Code Review"],
@@ -1750,7 +1750,7 @@ describe("Codex direct-skill E2E", () => {
     }
   });
 
-  it("routes $cc:review --background through the built-in path with notification steering", async (t) => {
+  it("routes $cc-orchestrator:review --background through the built-in path with notification steering", async (t) => {
     if (!codexAvailable()) {
       t.skip("codex CLI is not available in this environment");
       return;
@@ -1768,9 +1768,9 @@ describe("Codex direct-skill E2E", () => {
 
     const reservedJobId = "review-background-steer-123";
     const ownerSessionId = "parent-review-session";
-    const userRequest = "$cc:review --background --scope working-tree --model haiku";
+    const userRequest = "$cc-orchestrator:review --background --scope working-tree --model haiku";
     const notificationMessage =
-      `Background Claude Code review finished. Open it with $cc:result ${reservedJobId}.`;
+      `Background Claude Code review finished. Open it with $cc-orchestrator:result ${reservedJobId}.`;
     const provider = startMockProvider({
       taskPrompt: "background review raw output should not surface",
       userRequest,
@@ -1785,7 +1785,7 @@ describe("Codex direct-skill E2E", () => {
         "allow one extra `send_input` call after a successful shell result",
         "must target the provided parent thread id",
         "do not silently drop the completion notification path from the child prompt",
-        "Background Claude Code review finished. Open it with $cc:result <reserved-job-id>.",
+        "Background Claude Code review finished. Open it with $cc-orchestrator:result <reserved-job-id>.",
       ],
       taskCommand:
         `node ${JSON.stringify(COMPANION_SCRIPT)} review --view-state defer --scope working-tree --model haiku --job-id ${JSON.stringify(reservedJobId)} --owner-session-id ${JSON.stringify(ownerSessionId)}`,
@@ -1844,7 +1844,7 @@ describe("Codex direct-skill E2E", () => {
     }
   });
 
-  it("routes $cc:adversarial-review --wait through the companion command with focus text", async (t) => {
+  it("routes $cc-orchestrator:adversarial-review --wait through the companion command with focus text", async (t) => {
     if (!codexAvailable()) {
       t.skip("codex CLI is not available in this environment");
       return;
@@ -1861,7 +1861,7 @@ describe("Codex direct-skill E2E", () => {
     );
 
     const userRequest =
-      "$cc:adversarial-review --wait --scope working-tree --model haiku focus on race conditions";
+      "$cc-orchestrator:adversarial-review --wait --scope working-tree --model haiku focus on race conditions";
     const provider = startDirectSkillProvider({
       userRequest,
       expectedNeedles: ["Claude Code Adversarial Review"],
@@ -1916,13 +1916,13 @@ describe("Codex direct-skill E2E", () => {
     );
 
     const userRequest =
-      "$cc:review --wait --scope working-tree --model haiku focus on race conditions";
+      "$cc-orchestrator:review --wait --scope working-tree --model haiku focus on race conditions";
     const provider = startDirectSkillProvider({
       userRequest,
       expectedNeedles: [
-        "`$cc:review` does not accept custom focus text",
-        "Unlike `$cc:review`, this skill accepts custom focus text after the flags",
-        "keep the delegated Claude part on `$cc:review`",
+        "`$cc-orchestrator:review` does not accept custom focus text",
+        "Unlike `$cc-orchestrator:review`, this skill accepts custom focus text after the flags",
+        "keep the delegated Claude part on `$cc-orchestrator:review`",
       ],
       shellCommands: [
         `node ${JSON.stringify(COMPANION_SCRIPT)} adversarial-review --view-state on-success --scope working-tree --model haiku focus on race conditions`,
@@ -1961,7 +1961,7 @@ describe("Codex direct-skill E2E", () => {
     }
   });
 
-  it("routes $cc:adversarial-review --background through the built-in path with notification steering", async (t) => {
+  it("routes $cc-orchestrator:adversarial-review --background through the built-in path with notification steering", async (t) => {
     if (!codexAvailable()) {
       t.skip("codex CLI is not available in this environment");
       return;
@@ -1980,9 +1980,9 @@ describe("Codex direct-skill E2E", () => {
     const reservedJobId = "adversarial-background-steer-123";
     const ownerSessionId = "parent-adversarial-session";
     const userRequest =
-      "$cc:adversarial-review --background --scope working-tree --model haiku focus on race conditions";
+      "$cc-orchestrator:adversarial-review --background --scope working-tree --model haiku focus on race conditions";
     const notificationMessage =
-      `Background Claude Code adversarial review finished. Open it with $cc:result ${reservedJobId}.`;
+      `Background Claude Code adversarial review finished. Open it with $cc-orchestrator:result ${reservedJobId}.`;
     const provider = startMockProvider({
       taskPrompt: "background adversarial review raw output should not surface",
       userRequest,
@@ -1997,7 +1997,7 @@ describe("Codex direct-skill E2E", () => {
         "allow one extra `send_input` call after a successful shell result",
         "must target the provided parent thread id",
         "do not silently drop the completion notification path from the child prompt",
-        "Background Claude Code adversarial review finished. Open it with $cc:result <reserved-job-id>.",
+        "Background Claude Code adversarial review finished. Open it with $cc-orchestrator:result <reserved-job-id>.",
       ],
       taskCommand:
         `node ${JSON.stringify(COMPANION_SCRIPT)} adversarial-review --view-state defer --scope working-tree --model haiku --job-id ${JSON.stringify(reservedJobId)} --owner-session-id ${JSON.stringify(ownerSessionId)} focus on race conditions`,
@@ -2061,14 +2061,14 @@ describe("Codex direct-skill E2E", () => {
     }
   });
 
-  it("routes $cc:setup --enable-review-gate through the json probe then final setup command", async (t) => {
+  it("routes $cc-orchestrator:setup --enable-review-gate through the json probe then final setup command", async (t) => {
     if (!codexAvailable()) {
       t.skip("codex CLI is not available in this environment");
       return;
     }
 
     const testEnv = createEnvironment();
-    const userRequest = "$cc:setup --enable-review-gate";
+    const userRequest = "$cc-orchestrator:setup --enable-review-gate";
     const provider = startDirectSkillProvider({
       userRequest,
       expectedNeedles: ["Claude Code Setup"],
@@ -2100,14 +2100,14 @@ describe("Codex direct-skill E2E", () => {
     }
   });
 
-  it("repairs native plugin hook feature gates during $cc:setup", async (t) => {
+  it("repairs native plugin hook feature gates during $cc-orchestrator:setup", async (t) => {
     if (!codexAvailable()) {
       t.skip("codex CLI is not available in this environment");
       return;
     }
 
     const testEnv = createEnvironment();
-    const userRequest = "$cc:setup";
+    const userRequest = "$cc-orchestrator:setup";
     const provider = startDirectSkillProvider({
       userRequest,
       expectedNeedles: ["Claude Code Setup"],
@@ -2141,14 +2141,14 @@ describe("Codex direct-skill E2E", () => {
     }
   });
 
-  it("repairs native plugin hooks during $cc:setup --enable-review-gate", async (t) => {
+  it("repairs native plugin hooks during $cc-orchestrator:setup --enable-review-gate", async (t) => {
     if (!codexAvailable()) {
       t.skip("codex CLI is not available in this environment");
       return;
     }
 
     const testEnv = createEnvironment();
-    const userRequest = "$cc:setup --enable-review-gate";
+    const userRequest = "$cc-orchestrator:setup --enable-review-gate";
     const provider = startDirectSkillProvider({
       userRequest,
       expectedNeedles: ["Claude Code Setup"],

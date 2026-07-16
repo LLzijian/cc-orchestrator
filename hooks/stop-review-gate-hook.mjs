@@ -66,13 +66,13 @@ function logNote(message) {
 function buildSetupNote(cwd) {
   const availability = getClaudeAvailability(cwd);
   if (!availability.available) {
-    return `Claude Code is not set up for the review gate. ${availability.detail}. Run $cc:setup.`;
+    return `Claude Code is not set up for the review gate. ${availability.detail}. Run $cc-orchestrator:setup.`;
   }
 
   const authStatus = getClaudeAuthStatus(cwd);
   if (!authStatus.loggedIn) {
     const detail = authStatus.detail ? ` ${authStatus.detail}.` : "";
-    return `Claude Code is not set up for the review gate.${detail} Run $cc:setup and, if needed, \`claude auth login\`.`;
+    return `Claude Code is not set up for the review gate.${detail} Run $cc-orchestrator:setup and, if needed, \`claude auth login\`.`;
   }
 
   return null;
@@ -109,7 +109,7 @@ function parseStopReviewOutput(rawOutput) {
       rawOutput: text,
       firstLine: "",
       reason:
-        "The stop-time Claude Code review returned no output. Run $cc:review --wait manually or bypass the gate."
+        "The stop-time Claude Code review returned no output. Run $cc-orchestrator:review --wait manually or bypass the gate."
     };
   }
 
@@ -156,7 +156,7 @@ function parseStopReviewOutput(rawOutput) {
     rawOutput: text,
     firstLine,
     reason:
-      "The stop-time Claude Code review returned an unexpected answer. Run $cc:review --wait manually or bypass the gate."
+      "The stop-time Claude Code review returned an unexpected answer. Run $cc-orchestrator:review --wait manually or bypass the gate."
   };
 }
 
@@ -193,7 +193,7 @@ async function runStopReview(cwd, input = {}) {
         promptBytes,
         reason: detail
           ? `The stop-time Claude Code review failed: ${detail}`
-          : "The stop-time Claude Code review failed. Run $cc:review --wait manually or bypass the gate."
+          : "The stop-time Claude Code review failed. Run $cc-orchestrator:review --wait manually or bypass the gate."
       };
     }
 
@@ -245,7 +245,7 @@ function checkRunningJobs(workspaceRoot, sessionId = null) {
     (job) => job.status === "queued" || job.status === "running"
   );
   return runningJob
-    ? `Claude Code task ${runningJob.id} is still running. Check $cc:status and use $cc:cancel ${runningJob.id} if you want to stop it before ending the session.`
+    ? `Claude Code task ${runningJob.id} is still running. Check $cc-orchestrator:status and use $cc-orchestrator:cancel ${runningJob.id} if you want to stop it before ending the session.`
     : null;
 }
 

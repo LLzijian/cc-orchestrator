@@ -45,7 +45,7 @@ test("internal runtime references keep the active-root and notification invarian
   assert.match(rescueRuntime, /allow at most one success-only `send_input` notification before finishing/i);
   assert.match(rescueRuntime, /Mention the tool name `send_input` literally/i);
   assert.match(rescueRuntime, /exact tool shape `send_input\(\{ target: <parent-thread-id>, message: <steering-message> \}\)`/i);
-  assert.match(rescueRuntime, /Use steering messages that point the parent at `\$cc:result` or `\$cc:status` instead of embedding the raw Claude result/i);
+  assert.match(rescueRuntime, /Use steering messages that point the parent at `\$cc-orchestrator:result` or `\$cc-orchestrator:status` instead of embedding the raw Claude result/i);
   assert.match(rescueRuntime, /use that same steering message as the child's own final assistant message instead of echoing the raw companion result/i);
 });
 
@@ -55,11 +55,11 @@ test("review skills keep background execution outside the companion command", ()
   const activeRootPattern = /<plugin-root>\/scripts\/claude-companion\.mjs/i;
 
   assert.match(review, /Resolve `<plugin-root>` as two directories above this `SKILL\.md` file/i);
-  assert.match(review, /Use `\$cc:review` as the default when the user asks for code review, asks you to have Claude review something, or wants a second review pass without explicitly asking for stronger adversarial scrutiny/i);
-  assert.match(review, /If the user asks for stronger challenge on design, tradeoffs, rollout risk, migration risk, configuration behavior, or provides custom review focus text, route to `\$cc:adversarial-review` instead/i);
-  assert.match(review, /If the user wants Claude Code to investigate, validate by changing code, or actually fix\/implement something, route to `\$cc:rescue` instead/i);
-  assert.match(review, /If the overall request is "you review it too, also ask Claude to review in the background, then you aggregate and fix it", keep the delegated Claude part on `\$cc:review` unless the user explicitly asks for a harsher or more adversarial review/i);
-  assert.match(review, /`\$cc:review` does not accept custom focus text/i);
+  assert.match(review, /Use `\$cc-orchestrator:review` as the default when the user asks for code review, asks you to have Claude review something, or wants a second review pass without explicitly asking for stronger adversarial scrutiny/i);
+  assert.match(review, /If the user asks for stronger challenge on design, tradeoffs, rollout risk, migration risk, configuration behavior, or provides custom review focus text, route to `\$cc-orchestrator:adversarial-review` instead/i);
+  assert.match(review, /If the user wants Claude Code to investigate, validate by changing code, or actually fix\/implement something, route to `\$cc-orchestrator:rescue` instead/i);
+  assert.match(review, /If the overall request is "you review it too, also ask Claude to review in the background, then you aggregate and fix it", keep the delegated Claude part on `\$cc-orchestrator:review` unless the user explicitly asks for a harsher or more adversarial review/i);
+  assert.match(review, /`\$cc-orchestrator:review` does not accept custom focus text/i);
   assert.match(review, activeRootPattern);
   assert.match(review, /Treat `--wait` and `--background` as Codex-side execution controls only/i);
   assert.match(review, /Strip them before calling the companion command/i);
@@ -98,22 +98,22 @@ test("review skills keep background execution outside the companion command", ()
   assert.match(review, /must target the provided parent thread id/i);
   assert.match(review, /exact tool shape `send_input\(\{ target: <parent-thread-id>, message: <steering-message> \}\)`/i);
   assert.match(review, /do not silently drop the completion notification path from the child prompt/i);
-  assert.match(review, /Background Claude Code review finished\. Open it with \$cc:result <reserved-job-id>\./i);
+  assert.match(review, /Background Claude Code review finished\. Open it with \$cc-orchestrator:result <reserved-job-id>\./i);
   assert.match(review, /that `send_input` message should use one of those exact steering messages/i);
   assert.match(review, /use these steering messages instead of embedding the raw review result in the notification/i);
   assert.match(review, /do not embed the raw Claude result inside the notification message/i);
   assert.match(review, /do not include any other prose in that notification message/i);
   assert.match(review, /use that same steering message as the child's own final assistant message instead of echoing the raw review result/i);
-  assert.match(review, /Check the subagent session or \$cc:status for progress, and once it's done, we will let you know to see the results\./i);
+  assert.match(review, /Check the subagent session or \$cc-orchestrator:status for progress, and once it's done, we will let you know to see the results\./i);
   assert.doesNotMatch(review, /claude-companion\.mjs" review --background/i);
   assert.doesNotMatch(review, /claude-companion\.mjs" review \$ARGUMENTS/i);
 
   assert.match(adversarial, /Resolve `<plugin-root>` as two directories above this `SKILL\.md` file/i);
-  assert.match(adversarial, /Do not treat `\$cc:adversarial-review` as the default review path/i);
+  assert.match(adversarial, /Do not treat `\$cc-orchestrator:adversarial-review` as the default review path/i);
   assert.match(adversarial, /Good triggers include requests to challenge the design, challenge tradeoffs, pressure-test a risky change, question whether a migration\/config\/template change really removed the risk, or honor custom focus text that asks for harsher review/i);
-  assert.match(adversarial, /If the user wants Claude Code to go beyond review and perform investigation, validation edits, or implementation work, route to `\$cc:rescue` instead/i);
-  assert.match(adversarial, /If the user asks for a local review plus a separate Claude background review and then wants the main Codex thread to aggregate the findings and apply fixes, keep the delegated Claude portion on `\$cc:review` unless the user explicitly asks for the adversarial angle/i);
-  assert.match(adversarial, /Unlike `\$cc:review`, this skill accepts custom focus text after the flags/i);
+  assert.match(adversarial, /If the user wants Claude Code to go beyond review and perform investigation, validation edits, or implementation work, route to `\$cc-orchestrator:rescue` instead/i);
+  assert.match(adversarial, /If the user asks for a local review plus a separate Claude background review and then wants the main Codex thread to aggregate the findings and apply fixes, keep the delegated Claude portion on `\$cc-orchestrator:review` unless the user explicitly asks for the adversarial angle/i);
+  assert.match(adversarial, /Unlike `\$cc-orchestrator:review`, this skill accepts custom focus text after the flags/i);
   assert.match(adversarial, activeRootPattern);
   assert.match(adversarial, /Treat `--wait` and `--background` as Codex-side execution controls only/i);
   assert.match(adversarial, /Strip them before calling the companion command/i);
@@ -152,13 +152,13 @@ test("review skills keep background execution outside the companion command", ()
   assert.match(adversarial, /must target the provided parent thread id/i);
   assert.match(adversarial, /exact tool shape `send_input\(\{ target: <parent-thread-id>, message: <steering-message> \}\)`/i);
   assert.match(adversarial, /do not silently drop the completion notification path from the child prompt/i);
-  assert.match(adversarial, /Background Claude Code adversarial review finished\. Open it with \$cc:result <reserved-job-id>\./i);
+  assert.match(adversarial, /Background Claude Code adversarial review finished\. Open it with \$cc-orchestrator:result <reserved-job-id>\./i);
   assert.match(adversarial, /that `send_input` message should use one of those exact steering messages/i);
   assert.match(adversarial, /use these steering messages instead of embedding the raw review result in the notification/i);
   assert.match(adversarial, /do not embed the raw Claude result inside the notification message/i);
   assert.match(adversarial, /do not include any other prose in that notification message/i);
   assert.match(adversarial, /use that same steering message as the child's own final assistant message instead of echoing the raw review result/i);
-  assert.match(adversarial, /Check the subagent session or \$cc:status for progress, and once it's done, we will let you know to see the results\./i);
+  assert.match(adversarial, /Check the subagent session or \$cc-orchestrator:status for progress, and once it's done, we will let you know to see the results\./i);
   assert.doesNotMatch(adversarial, /claude-companion\.mjs" adversarial-review --background/i);
   assert.doesNotMatch(adversarial, /claude-companion\.mjs" adversarial-review \$ARGUMENTS/i);
 });
@@ -168,7 +168,7 @@ test("rescue skill keeps --background and --wait as host-side controls only", ()
   const activeRootPattern = /<plugin-root>\/scripts\/claude-companion\.mjs/i;
 
   assert.match(rescue, /Resolve `<plugin-root>` as two directories above this `SKILL\.md` file/i);
-  assert.match(rescue, /Prefer `\$cc:rescue` when the user wants Claude Code to diagnose the issue, validate a risky change by actually editing or testing, apply fixes from a prior review, or carry a task forward across multiple steps/i);
+  assert.match(rescue, /Prefer `\$cc-orchestrator:rescue` when the user wants Claude Code to diagnose the issue, validate a risky change by actually editing or testing, apply fixes from a prior review, or carry a task forward across multiple steps/i);
   assert.match(rescue, /Do not use rescue for "just review this diff" unless the user also wants follow-through work beyond review findings/i);
   assert.match(rescue, /Do not use rescue merely because the main Codex thread plans to fix things after combining its own review with a separate Claude review/i);
   assert.match(rescue, activeRootPattern);
@@ -191,7 +191,7 @@ test("rescue skill keeps --background and --wait as host-side controls only", ()
   assert.match(rescue, /Background rescue must add `--view-state defer`/i);
   assert.match(rescue, /Background: spawn the rescue subagent without waiting for it in this turn/i);
   assert.match(rescue, /The subagent still runs the companion `task` command in the foreground/i);
-  assert.match(rescue, /tell the user `Claude Code rescue started in the background\. Check the subagent session or \$cc:status for progress, and once it's done, we will let you know to see the results\.`/i);
+  assert.match(rescue, /tell the user `Claude Code rescue started in the background\. Check the subagent session or \$cc-orchestrator:status for progress, and once it's done, we will let you know to see the results\.`/i);
 });
 
 test("rescue skill documents the experimental built-in-agent forwarding path", () => {
@@ -229,9 +229,9 @@ test("rescue skill documents the experimental built-in-agent forwarding path", (
   assert.match(rescue, /exact tool shape `send_input\(\{ target: <parent-thread-id>, message: <steering-message> \}\)`/i);
   assert.match(rescue, /do not silently drop the completion notification path from the child prompt/i);
   assert.match(rescue, /short user-facing template that steers the parent toward explicit result retrieval instead of inlining the raw result/i);
-  assert.match(rescue, /Background Claude Code rescue finished\. Open it with \$cc:result <reserved-job-id>\./i);
+  assert.match(rescue, /Background Claude Code rescue finished\. Open it with \$cc-orchestrator:result <reserved-job-id>\./i);
   assert.match(rescue, /fall back to:/i);
-  assert.match(rescue, /Background Claude Code rescue finished\. Inspect it with \$cc:status first, then use \$cc:result for the finished job you want to open\./i);
+  assert.match(rescue, /Background Claude Code rescue finished\. Inspect it with \$cc-orchestrator:status first, then use \$cc-orchestrator:result for the finished job you want to open\./i);
   assert.match(rescue, /blocking foreground shell-tool call, not as a background terminal\/session/i);
   assert.match(rescue, /Do not request a shell session id, poll a shell session later, or return before the companion command exits/i);
   assert.match(rescue, /if the available shell tool is `exec_command`, call it once in non-interactive mode and wait for command exit in that same call/i);

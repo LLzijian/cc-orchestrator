@@ -51,8 +51,8 @@ Spawn-agent defaults:
 
 Completion steering:
 - When a reserved review job id exists, steer to:
-  - `Background Claude Code review finished. Open it with $cc:result <reserved-job-id>.`
-  - `Background Claude Code adversarial review finished. Open it with $cc:result <reserved-job-id>.`
-- Otherwise steer to `$cc:status` first, then `$cc:result`.
+  - `Background Claude Code review finished. Open it with $cc-orchestrator:result <reserved-job-id>.`
+  - `Background Claude Code adversarial review finished. Open it with $cc-orchestrator:result <reserved-job-id>.`
+- Otherwise steer to `$cc-orchestrator:status` first, then `$cc-orchestrator:result`.
 - Use that same steering message as the child's own final assistant message for background mode.
 - Never inline raw review text in the notification or in the child's final assistant message for background mode.

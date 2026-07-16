@@ -1,11 +1,21 @@
 # Changelog
 
+## v0.1.0
+
+- Fork Sendbird's `cc-plugin-codex` runtime into the personal `cc-orchestrator` plugin while preserving Apache-2.0 attribution and the upstream remote.
+- Add transparent delegation receipts with job, model, permission, task-chain, session policy, and contract details.
+- Add task-chain Claude session continuity with explicit `auto`, `fresh`, and `resume` policies.
+- Add durable JSONL delegation audits outside the repository and a mandatory Codex accept/reject verification handoff.
+- Add bounded delegate, verification, and session-management skills for Codex-owned orchestration.
+- Preserve Claude CLI model aliases so custom providers can resolve `haiku`, `sonnet`, and `opus`, and record the actual provider model returned in `modelUsage`.
+- Resolve the real npm-installed `claude.exe` on Windows instead of failing on PowerShell's `claude.ps1` shim.
+
 ## v1.2.1
 
 - Switch marketplace installs to Codex native plugin hooks: bundled hooks now load from `hooks/hooks.json` in the active plugin cache with `$PLUGIN_ROOT` instead of writing managed global hook commands into `~/.codex/hooks.json`.
 - Remove the local checkout/stable-root install path from the supported install flow. The installer now uses `marketplace/add` + `plugin/install`, cleans stale `~/.codex/plugins/cc` state, and enables `[features].hooks` plus `[features].plugin_hooks`.
 - Update public skills to resolve the active plugin root from their `SKILL.md` path, so marketplace cache installs run the matching companion code after plugin updates.
-- Refresh README, setup, installer, and E2E coverage around the marketplace/cache-only install path, native hook feature-gate repair, and `$cc:setup` trust repair for this plugin's hook hashes.
+- Refresh README, setup, installer, and E2E coverage around the marketplace/cache-only install path, native hook feature-gate repair, and `$cc-orchestrator:setup` trust repair for this plugin's hook hashes.
 
 ## v1.2.0
 
@@ -26,11 +36,11 @@
 
 - Add marketplace-aware install foundation for Codex 0.121+: the installer can now prefer `marketplace/add` + `plugin/install` when an official marketplace source is available, while keeping the existing legacy fallback path for unsupported builds.
 - Generalize managed plugin identity handling so setup, hook cleanup, and cache detection work for `cc@<marketplace>` installs instead of assuming `cc@local-plugins`.
-- Document the new canonical marketplace location at `sendbird/codex-marketplace` and make Sendbird marketplace install the first documented path, with `$cc:setup` called out as the required post-install hook repair step.
+- Document the new canonical marketplace location at `sendbird/codex-marketplace` and make Sendbird marketplace install the first documented path, with `$cc-orchestrator:setup` called out as the required post-install hook repair step.
 
 ## v1.0.8
 
-- Clarify the routing boundary between `$cc:review`, `$cc:adversarial-review`, and `$cc:rescue`, including the rule that ordinary code-review requests default to `review`, stronger scrutiny plus custom focus text belongs to `adversarial-review`, and rescue is only for Claude-owned follow-through work.
+- Clarify the routing boundary between `$cc-orchestrator:review`, `$cc-orchestrator:adversarial-review`, and `$cc-orchestrator:rescue`, including the rule that ordinary code-review requests default to `review`, stronger scrutiny plus custom focus text belongs to `adversarial-review`, and rescue is only for Claude-owned follow-through work.
 - Add E2E coverage that injects both review skills together and verifies the focus-text distinction is surfaced to the parent turn while the adversarial focus path still reaches Claude end to end.
 - Refresh the macOS integration concurrency test so aggressive concurrent polling no longer flakes when some jobs finish slightly later than the initial polling window.
 - Update development dependencies with the merged Dependabot patch bumps for `@types/node` and `globals`.
@@ -45,20 +55,20 @@
 
 ## v1.0.6
 
-- Restore parent-session ownership for built-in background rescue/review runs so resume candidates, plain `$cc:status`, and no-argument `$cc:result` stay aligned after nested child sessions run.
+- Restore parent-session ownership for built-in background rescue/review runs so resume candidates, plain `$cc-orchestrator:status`, and no-argument `$cc-orchestrator:result` stay aligned after nested child sessions run.
 - Distinguish the owning Codex session from the actual Claude Code session in job rendering so `claude --resume ...` points at the real Claude session instead of the parent owner marker.
 - Tighten the background review and adversarial-review forwarding contracts around `send_input` notification behavior and add E2E coverage for built-in notification steering in both flows.
 
 ## v1.0.5
 
-- Keep built-in background review jobs attached to the parent Codex session so plain `$cc:status` and `$cc:result` stay intuitive after nested rescue/review flows.
-- Make `$cc:status --all` show the full job history for the current repository workspace instead of staying session-scoped.
+- Keep built-in background review jobs attached to the parent Codex session so plain `$cc-orchestrator:status` and `$cc-orchestrator:result` stay intuitive after nested rescue/review flows.
+- Make `$cc-orchestrator:status --all` show the full job history for the current repository workspace instead of staying session-scoped.
 - Harden large-diff review and hook fingerprinting so oversized `git diff` output degrades cleanly instead of failing with `ENOBUFS`.
 - Clarify README guidance around review visibility, large diffs, and the difference between session-scoped status and repository-wide status.
 
 ## v1.0.4
 
-- Make background built-in rescue/review completions steer users to `$cc:result <job-id>` instead of inlining raw child output.
+- Make background built-in rescue/review completions steer users to `$cc-orchestrator:result <job-id>` instead of inlining raw child output.
 - Harden reserved job-id handling by requiring real reservations, sanitizing reserved-job paths, and releasing reservations across validation and job-creation failures.
 - Add regression coverage for reserved job ids, background completion steering, large diff omission, and untracked directory/symlink review context handling.
 - Refresh the README to be more install-first and user-friendly for Codex users trying Claude Code for the first time.
@@ -73,7 +83,7 @@
 
 - Add fallback `cc-*` skill and prompt wrappers only when Codex's official `plugin/install` path is unavailable.
 - Remove stale managed fallback wrappers after official install succeeds again and during uninstall/self-cleanup.
-- Clarify that marketplace-style installs which bypass the installer should run `$cc:setup` once to install hooks.
+- Clarify that marketplace-style installs which bypass the installer should run `$cc-orchestrator:setup` once to install hooks.
 - Stabilize the concurrent polling integration assertion used in release verification.
 
 ## v1.0.1
@@ -81,7 +91,7 @@
 - Install and uninstall through Codex app-server when available, with safe fallback activation on unsupported builds.
 - Remove the global `cc-rescue` agent and keep only managed Codex hooks outside the plugin directory.
 - Switch rescue to the built-in forwarding subagent path and harden hook self-clean behavior.
-- Auto-install missing hooks during `$cc:setup`.
+- Auto-install missing hooks during `$cc-orchestrator:setup`.
 - Clarify background unread-result nudges and the hooks-only global state model in the README.
 
 ## v1.0.0

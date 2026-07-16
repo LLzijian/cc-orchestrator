@@ -1,47 +1,41 @@
 {
-  "name": "cc",
-  "version": "1.2.1",
-  "description": "Claude Code Plugin for Codex. Delegate code reviews, investigations, and tracked tasks to Claude Code from inside Codex.",
+  "name": "cc-orchestrator",
+  "version": "0.1.0",
+  "description": "Transparent Claude Code delegation for Codex with task-chain sessions, audit records, and mandatory Codex verification.",
   "author": {
-    "name": "Sendbird, Inc.",
-    "email": "jin.ku@sendbird.com",
-    "url": "https://sendbird.com/"
+    "name": "LLLzijian",
+    "email": "LLLzijian@outlook.com",
+    "url": "https://github.com/LLzijian"
   },
-  "homepage": "https://github.com/sendbird/cc-plugin-codex",
-  "repository": "https://github.com/sendbird/cc-plugin-codex",
+  "homepage": "https://github.com/LLzijian/cc-orchestrator",
+  "repository": "https://github.com/LLzijian/cc-orchestrator",
   "license": "Apache-2.0",
   "keywords": [
     "claude-code",
     "codex",
-    "code-review",
+    "orchestration",
     "task-delegation",
-    "agent"
+    "audit"
   ],
   "skills": "./skills/",
-  "hooks": "./hooks/hooks.json",
   "interface": {
-    "displayName": "Claude Code",
-    "shortDescription": "Claude Code Plugin for Codex",
-    "longDescription": "Use Claude Code from inside Codex to run read-only reviews, adversarial design reviews, and tracked rescue tasks through a Claude-backed runtime with job status and result retrieval.",
-    "developerName": "Sendbird, Inc.",
+    "displayName": "CC Orchestrator",
+    "shortDescription": "Transparent Claude Code workers for Codex",
+    "longDescription": "Let Codex delegate bounded leaf tasks to Claude Code with visible receipts, task-chain session continuity, durable audit records, and a required Codex verification handoff.",
+    "developerName": "LLLzijian",
     "category": "Coding",
     "capabilities": [
       "Interactive",
       "Write"
     ],
-    "websiteURL": "https://sendbird.com/",
-    "privacyPolicyURL": "https://sendbird.com/privacy-notice",
-    "termsOfServiceURL": "https://sendbird.com/terms-of-service",
+    "websiteURL": "https://github.com/LLzijian/cc-orchestrator",
     "defaultPrompt": [
-      "Use Claude Code to review my current changes through $cc:review",
-      "Use Claude Code to challenge this implementation through $cc:adversarial-review",
-      "Use Claude Code to investigate and fix this issue through $cc:rescue"
+      "Delegate a bounded implementation task to Claude Code",
+      "Continue a Claude task-chain and verify the result",
+      "Review my current changes with an independent Claude session"
     ],
     "brandColor": "#7B39FE",
     "composerIcon": "./assets/cc-small.svg",
-    "logo": "./assets/cc-plugin-codex.png",
-    "screenshots": [
-      "./assets/cc-plugin-codex-screenshot-1.png"
-    ]
+    "logo": "./assets/cc-plugin-codex.png"
   }
 }

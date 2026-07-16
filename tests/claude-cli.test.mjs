@@ -41,6 +41,7 @@ describe("StreamParser", () => {
       type: "result",
       result: "done",
       session_id: "sess-1",
+      modelUsage: { "provider-model": { inputTokens: 10, outputTokens: 2 } },
     });
     const events = parser.feed(resultEvent + "\n");
     assert.equal(events.length, 1);
@@ -48,6 +49,9 @@ describe("StreamParser", () => {
     assert.equal(parser.state.receivedTerminalEvent, true);
     assert.equal(parser.state.sessionId, "sess-1");
     assert.equal(parser.state.finalMessage, "done");
+    assert.deepEqual(parser.state.modelUsage, {
+      "provider-model": { inputTokens: 10, outputTokens: 2 },
+    });
   });
 
   it("captures terminal structured_output even when result text is empty", () => {
@@ -427,12 +431,12 @@ describe("validateTurnCompletion", () => {
 // ===========================================================================
 
 describe("resolveModel", () => {
-  it("maps 'sonnet' to the 1M variant 'claude-sonnet-4-6[1m]'", () => {
-    assert.equal(resolveModel("sonnet"), "claude-sonnet-4-6[1m]");
+  it("preserves the provider-aware 'sonnet' alias", () => {
+    assert.equal(resolveModel("sonnet"), "sonnet");
   });
 
-  it("maps 'haiku' to 'claude-haiku-4-5'", () => {
-    assert.equal(resolveModel("haiku"), "claude-haiku-4-5");
+  it("preserves the provider-aware 'haiku' alias", () => {
+    assert.equal(resolveModel("haiku"), "haiku");
   });
 
   it("passes through unknown model names", () => {
@@ -448,8 +452,8 @@ describe("resolveModel", () => {
     assert.equal(resolveModel(""), undefined);
   });
 
-  it("maps 'opus' to the 1M variant 'claude-opus-4-7[1m]'", () => {
-    assert.equal(resolveModel("opus"), "claude-opus-4-7[1m]");
+  it("preserves the provider-aware 'opus' alias", () => {
+    assert.equal(resolveModel("opus"), "opus");
   });
 
   it("MODEL_ALIASES map has expected entries", () => {
@@ -643,7 +647,7 @@ describe("buildArgs", () => {
     const args = buildArgs("p", { model: "sonnet" });
     const idx = args.indexOf("--model");
     assert.ok(idx >= 0);
-    assert.equal(args[idx + 1], "claude-sonnet-4-6[1m]");
+    assert.equal(args[idx + 1], "sonnet");
   });
 
   it("includes --effort with resolved effort", () => {

@@ -1,6 +1,6 @@
 ---
 name: status
-description: 'Show active or recent Claude Code jobs in this repository, or detailed status for a specific job id. Args: [job-id], --wait, --timeout-ms <ms>, --poll-interval-ms <ms>, --all. Use for tracked-job inspection, not setup or result retrieval.'
+description: 'Show active or recent Claude Code jobs in this repository, or detailed status for a specific job id. Supports waiting, timeout and poll interval controls, and all-session history. Use for tracked-job inspection, not setup or result retrieval.'
 ---
 
 # Claude Code Status

@@ -390,9 +390,9 @@ describe("renderStatusReport", () => {
     };
     const output = renderStatusReport(report);
     assert.ok(output.startsWith("| Job | Kind | Status | Phase | Started | Ended | Elapsed/Duration | Summary | Actions |"));
-    assert.ok(output.includes("`$cc:status j1`"));
-    assert.ok(output.includes("`$cc:cancel j1`"));
-    assert.ok(output.includes("`$cc:result j2`"));
+    assert.ok(output.includes("`$cc-orchestrator:status j1`"));
+    assert.ok(output.includes("`$cc-orchestrator:cancel j1`"));
+    assert.ok(output.includes("`$cc-orchestrator:result j2`"));
     assert.ok(output.includes("2026-04-02T19:00:00.000Z"));
     assert.ok(output.indexOf("j1") < output.indexOf("j2"));
     assert.ok(output.indexOf("j2") < output.indexOf("j3"));
@@ -476,7 +476,7 @@ describe("renderJobStatusReport", () => {
     assert.ok(output.includes("| Started | 2026-04-02T19:00:00.000Z |"));
     assert.ok(output.includes("| Ended | 2026-04-02T19:01:00.000Z |"));
     assert.ok(output.includes("| Duration | 1m |"));
-    assert.ok(output.includes("| Result | `$cc:result j1` |"));
+    assert.ok(output.includes("| Result | `$cc-orchestrator:result j1` |"));
     assert.ok(output.includes("| Claude Code session | `claude-sess` |"));
     assert.ok(output.includes("| Owning Codex session | `owner-sess` |"));
     assert.ok(output.includes("| Resume | `claude --resume claude-sess` |"));
@@ -493,7 +493,7 @@ describe("renderJobStatusReport", () => {
     };
     const output = renderJobStatusReport(job);
     assert.ok(output.includes("| Elapsed | 5s |"));
-    assert.ok(output.includes("| Cancel | `$cc:cancel j2` |"));
+    assert.ok(output.includes("| Cancel | `$cc-orchestrator:cancel j2` |"));
   });
 });
 
@@ -600,7 +600,7 @@ describe("renderCancelReport", () => {
   it("renders basic cancel confirmation", () => {
     const output = renderCancelReport({ id: "j1" });
     assert.ok(output.includes("Cancelled j1"));
-    assert.ok(output.includes("$cc:status"));
+    assert.ok(output.includes("$cc-orchestrator:status"));
   });
 
   it("includes title and summary if present", () => {

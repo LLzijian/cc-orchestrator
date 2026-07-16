@@ -10,7 +10,7 @@
  *
  * Adapted from codex-companion.mjs:
  * - Uses claude-cli.mjs instead of app-server/broker
- * - MODEL_ALIASES: opus -> claude-opus-4-7[1m], sonnet -> claude-sonnet-4-6[1m], haiku -> claude-haiku-4-5
+ * - MODEL_ALIASES preserve opus/sonnet/haiku for provider-aware Claude CLI resolution
  * - Default model when --model is unset: opus
  * - Default effort by model: opus -> xhigh, sonnet -> high, haiku -> unset
  * - Claude CLI effort values: low, medium, high, xhigh, max
@@ -18,8 +18,8 @@
  * - Review gate matches upstream setup semantics: Stop hook runs when enabled
  *
  * Subcommands:
- *   setup, review, adversarial-review, task, task-worker,
- *   status, result, cancel, task-resume-candidate
+ *   setup, review, adversarial-review, task/delegate, task-worker,
+ *   status, result, verify, sessions, cancel, task-resume-candidate
  */
 
 import { spawn } from "node:child_process";
@@ -112,6 +112,19 @@ import {
   renderStatusReport,
   renderTaskResult
 } from "./lib/render.mjs";
+import {
+  appendDelegationAudit,
+  buildDelegationReceipt,
+  clearTaskChainSession,
+  findOutOfScopeFiles,
+  loadTaskChainRegistry,
+  normalizeSessionPolicy,
+  normalizeTaskChain,
+  readDelegationContract,
+  recordTaskChainSession,
+  resolveDelegationAuditPath,
+  resolveTaskChainSession,
+} from "./lib/orchestration.mjs";
 
 const ROOT_DIR = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
 const REVIEW_SCHEMA_PATH = path.join(ROOT_DIR, "schemas", "review-output.schema.json");
@@ -132,8 +145,11 @@ function printUsage() {
       "  node scripts/claude-companion.mjs review [--wait|--background] [--base <ref>] [--scope <auto|working-tree|branch>] [--model <model|opus|sonnet|haiku>] [--effort <low|medium|high|xhigh|max>]",
       "  node scripts/claude-companion.mjs adversarial-review [--wait|--background] [--base <ref>] [--scope <auto|working-tree|branch>] [--model <model|opus|sonnet|haiku>] [--effort <low|medium|high|xhigh|max>] [focus text]",
       "  node scripts/claude-companion.mjs task [--background] [--write] [--resume-last|--resume|--fresh] [--model <model|opus|sonnet|haiku>] [--effort <low|medium|high|xhigh|max>] [prompt]",
+      "  node scripts/claude-companion.mjs delegate [--task-chain <id>] [--session-policy <auto|fresh|resume>] [--contract-file <json>] [task]",
       "  node scripts/claude-companion.mjs status [job-id] [--all] [--json]",
       "  node scripts/claude-companion.mjs result [job-id] [--json]",
+      "  node scripts/claude-companion.mjs verify <job-id> <--accept|--reject> --evidence <text>",
+      "  node scripts/claude-companion.mjs sessions [--reset <task-chain>] [--json]",
       "  node scripts/claude-companion.mjs cancel [job-id] [--json]",
       "  node scripts/claude-companion.mjs session-routing-context [--cwd <path>] [--json]",
       "  node scripts/claude-companion.mjs background-routing-context --kind <review|task> [--cwd <path>] [--json]",
@@ -369,7 +385,7 @@ function currentPluginCacheInstallInfo() {
   const [marketplaceName, pluginName, version] = relativePath
     .split(path.sep)
     .filter(Boolean);
-  if (!marketplaceName || pluginName !== "cc" || !version) {
+  if (!marketplaceName || pluginName !== "cc-orchestrator" || !version) {
     return null;
   }
   return {
@@ -405,7 +421,11 @@ function isCurrentPluginHook(hook, pluginInfo) {
   if (pluginInfo?.pluginId && hook.pluginId !== pluginInfo.pluginId) {
     return false;
   }
-  if (pluginInfo == null && typeof hook.pluginId === "string" && !hook.pluginId.startsWith("cc@")) {
+  if (
+    pluginInfo == null &&
+    typeof hook.pluginId === "string" &&
+    !hook.pluginId.startsWith("cc-orchestrator@")
+  ) {
     return false;
   }
   return pathIsInsideRoot(hook.sourcePath);
@@ -539,7 +559,7 @@ function ensureClaudeReady(cwd) {
   const authStatus = getClaudeAuthStatus(cwd);
   if (!authStatus.available) {
     throw new Error(
-      "Claude Code CLI is not installed or is missing required runtime support. Install it, then rerun `$cc:setup`."
+      "Claude Code CLI is not installed or is missing required runtime support. Install it, then rerun `$cc-orchestrator:setup`."
     );
   }
   if (!authStatus.loggedIn) {
@@ -565,14 +585,14 @@ function buildSetupReport(cwd, actionsTaken = [], hookTrust = null) {
     nextSteps.push("Run `claude auth login`.");
   }
   if (!hooksStatus.installed) {
-    nextSteps.push("Run `$cc:setup` again after enabling native Codex plugin hooks.");
+    nextSteps.push("Run `$cc-orchestrator:setup` again after enabling native Codex plugin hooks.");
   }
   if (hookTrust?.ready === false) {
-    nextSteps.push("Open `/hooks` and trust this plugin's hooks manually, then rerun `$cc:setup`.");
+    nextSteps.push("Open `/hooks` and trust this plugin's hooks manually, then rerun `$cc-orchestrator:setup`.");
   }
   if (!config.stopReviewGate) {
     nextSteps.push(
-      "Optional: run `$cc:setup --enable-review-gate` to require a fresh review before stop."
+      "Optional: run `$cc-orchestrator:setup --enable-review-gate` to require a fresh review before stop."
     );
   }
 
@@ -723,6 +743,7 @@ async function executeReviewRun(request) {
       review: reviewName,
       target,
       sessionId: result.sessionId,
+      modelUsage: result.modelUsage ?? null,
       codex: {
         status: result.status,
         warning: result.warning ?? null,
@@ -819,6 +840,7 @@ async function executeReviewRun(request) {
     review: reviewName,
     target,
     sessionId: result.sessionId,
+    modelUsage: result.modelUsage ?? null,
     context: {
       repoRoot: context.repoRoot,
       branch: context.branch,
@@ -943,6 +965,7 @@ async function executeTaskRun(request) {
     warning: result.warning ?? null,
     sessionId: result.sessionId,
     rawOutput,
+    modelUsage: result.modelUsage ?? null,
     touchedFiles: Array.isArray(result.touchedFiles)
       ? result.touchedFiles
       : result.toolUses
@@ -950,6 +973,22 @@ async function executeTaskRun(request) {
           .map((t) => t.input?.file_path ?? t.input?.path)
           .filter(Boolean)
   };
+
+  if (result.status === "completed" && request.taskChain && result.sessionId) {
+    recordTaskChainSession(workspaceRoot, request.taskChain, result.sessionId, {
+      jobId: request.jobId,
+      model: request.model,
+    });
+  }
+  appendDelegationAudit(workspaceRoot, {
+    event: "claude-finished",
+    jobId: request.jobId ?? null,
+    taskChain: request.taskChain ?? null,
+    status: result.status,
+    claudeSessionId: result.sessionId ?? null,
+    modelUsage: result.modelUsage ?? null,
+    touchedFiles: payload.touchedFiles,
+  });
 
   return {
     exitStatus: resolveClaudeExitStatus(result),
@@ -1140,19 +1179,29 @@ function buildTaskJob(
   taskMetadata,
   write,
   ownerSessionId = null,
-  explicitJobId = null
+  explicitJobId = null,
+  orchestration = {}
 ) {
-  return createCompanionJob({
-    prefix: "task",
-    kind: "task",
-    title: taskMetadata.title,
-    workspaceRoot,
-    jobClass: "task",
-    summary: taskMetadata.summary,
-    write,
-    sessionId: ownerSessionId,
-    explicitJobId
-  });
+  return {
+    ...createCompanionJob({
+      prefix: "task",
+      kind: "task",
+      title: taskMetadata.title,
+      workspaceRoot,
+      jobClass: "task",
+      summary: taskMetadata.summary,
+      write,
+      sessionId: ownerSessionId,
+      explicitJobId
+    }),
+    taskChain: orchestration.taskChain ?? null,
+    sessionPolicy: orchestration.sessionPolicy ?? "fresh",
+    contract: orchestration.contract ?? null,
+    codexVerification: {
+      status: "pending",
+      required: true,
+    },
+  };
 }
 
 function buildTaskRequest({
@@ -1164,7 +1213,10 @@ function buildTaskRequest({
   resumeLast,
   resumeSessionId,
   jobId,
-  markViewedOnSuccess
+  markViewedOnSuccess,
+  taskChain,
+  sessionPolicy,
+  contract,
 }) {
   return {
     cwd,
@@ -1175,7 +1227,10 @@ function buildTaskRequest({
     resumeLast,
     resumeSessionId,
     jobId,
-    markViewedOnSuccess
+    markViewedOnSuccess,
+    taskChain,
+    sessionPolicy,
+    contract,
   };
 }
 
@@ -1199,8 +1254,8 @@ function requireTaskRequest(prompt, resumeLast) {
 function renderQueuedTaskLaunch(payload) {
   return [
     `${payload.title} started in the background as ${payload.jobId}.`,
-    `Check $cc:status ${payload.jobId} for progress.`,
-    `Once it finishes, we'll point you to the result. You can also open it directly with $cc:result ${payload.jobId}.`,
+    `Check $cc-orchestrator:status ${payload.jobId} for progress.`,
+    `Once it finishes, we'll point you to the result. You can also open it directly with $cc-orchestrator:result ${payload.jobId}.`,
     ""
   ].join("\n");
 }
@@ -1407,7 +1462,7 @@ async function resolveLatestResumableSession(cwd, options = {}) {
   );
   if (activeTask) {
     throw new Error(
-      `Task ${activeTask.id} is still running. Use $cc:status before continuing it.`
+      `Task ${activeTask.id} is still running. Use $cc-orchestrator:status before continuing it.`
     );
   }
 
@@ -1536,7 +1591,21 @@ async function handleAdversarialReview(argv) {
 
 async function handleTask(argv) {
   const { options, positionals } = parseCommandInput(argv, {
-    valueOptions: ["model", "effort", "cwd", "prompt-file", "view-state", "owner-session-id", "job-id"],
+    valueOptions: [
+      "model",
+      "effort",
+      "cwd",
+      "prompt-file",
+      "contract-file",
+      "allowed-files",
+      "acceptance",
+      "verification-commands",
+      "task-chain",
+      "session-policy",
+      "view-state",
+      "owner-session-id",
+      "job-id"
+    ],
     booleanOptions: [
       "json",
       "quiet-progress",
@@ -1558,20 +1627,45 @@ async function handleTask(argv) {
   const model = resolveDefaultModel(requestedModel);
   const resolvedEffort = resolveDefaultEffort(model, options.effort);
   const effort = resolvedEffort ? resolveEffort(resolvedEffort) : null;
-  const prompt = readTaskPrompt(cwd, options, positionals);
+  const fileContract = readDelegationContract(cwd, options["contract-file"]);
+  const splitList = (value, separator) =>
+    String(value ?? "")
+      .split(separator)
+      .map((item) => item.trim())
+      .filter(Boolean);
+  const inlineContract =
+    options["allowed-files"] || options.acceptance || options["verification-commands"]
+      ? {
+          allowedFiles: splitList(options["allowed-files"], ","),
+          acceptance: splitList(options.acceptance, "|"),
+          verificationCommands: splitList(options["verification-commands"], "|"),
+        }
+      : null;
+  const contract = fileContract || inlineContract;
+  const prompt = contract?.prompt || readTaskPrompt(cwd, options, positionals);
+  const taskChain = normalizeTaskChain(
+    options["task-chain"] ?? contract?.taskChain ?? null
+  );
   const markViewedOnSuccess = resolveMarkViewedOnSuccess(
     options["view-state"],
     Boolean(options.background)
   );
 
-  const resumeLast = Boolean(options["resume-last"] || options.resume);
+  const explicitResume = Boolean(options["resume-last"] || options.resume);
   const fresh = Boolean(options.fresh);
-  if (resumeLast && fresh) {
+  if (explicitResume && fresh) {
     throw new Error("Choose either --resume/--resume-last or --fresh.");
   }
 
+  let sessionPolicy = normalizeSessionPolicy(
+    options["session-policy"] ?? contract?.sessionPolicy,
+    Boolean(taskChain)
+  );
+  if (explicitResume) sessionPolicy = "resume";
+  if (fresh) sessionPolicy = "fresh";
+
   // Validate before arming: ensure we have a prompt or resume target
-  if (!prompt && !resumeLast) {
+  if (!prompt && sessionPolicy !== "resume") {
     throw new Error("Provide a prompt, a prompt file, piped stdin, or use --resume.");
   }
   ensureClaudeReady(cwd);
@@ -1580,22 +1674,24 @@ async function handleTask(argv) {
   const ownerSessionId = resolveOwnerSessionId(options["owner-session-id"]);
   const explicitJobId = resolveExplicitJobId(options["job-id"], workspaceRoot);
   await withReleasedReservation(workspaceRoot, explicitJobId, async () => {
-    const taskMetadata = buildTaskRunMetadata({
-      prompt,
-      resumeLast
-    });
     alignCurrentSessionToOwner(workspaceRoot, ownerSessionId);
 
-    // Resolve resume session inside the reservation guard so failures do not leak markers.
+    // Resolve task-chain sessions before falling back to the legacy repository-wide resume.
     let resumeSessionId = null;
-    if (resumeLast) {
+    if (sessionPolicy !== "fresh" && taskChain) {
+      resumeSessionId = resolveTaskChainSession(workspaceRoot, taskChain)?.sessionId ?? null;
+    } else if (sessionPolicy === "resume") {
       resumeSessionId = await resolveLatestResumableSession(workspaceRoot);
-      if (!resumeSessionId) {
-        throw new Error(
-          "No previous Claude Code task session was found for this repository."
-        );
-      }
     }
+    if (sessionPolicy === "resume" && !resumeSessionId) {
+      throw new Error(
+        taskChain
+          ? `No Claude Code session was found for task chain ${taskChain}.`
+          : "No previous Claude Code task session was found for this repository."
+      );
+    }
+    const resumeLast = Boolean(resumeSessionId);
+    const taskMetadata = buildTaskRunMetadata({ prompt, resumeLast });
 
     if (options.background) {
       requireTaskRequest(prompt, resumeLast);
@@ -1606,8 +1702,34 @@ async function handleTask(argv) {
       taskMetadata,
       write,
       ownerSessionId,
-      explicitJobId
+      explicitJobId,
+      { taskChain, sessionPolicy, contract }
     );
+    const receipt = buildDelegationReceipt({
+      jobId: job.id,
+      taskChain,
+      sessionPolicy,
+      resumeSessionId,
+      model,
+      effort,
+      write,
+      contract,
+      summary: taskMetadata.summary,
+    });
+    process.stderr.write(receipt);
+    const auditFile = appendDelegationAudit(workspaceRoot, {
+      event: "delegated",
+      jobId: job.id,
+      taskChain,
+      sessionPolicy,
+      claudeSessionId: resumeSessionId,
+      model,
+      effort,
+      permission: write ? "workspace-write" : "read-only",
+      contract,
+      summary: taskMetadata.summary,
+    });
+    job.auditFile = auditFile;
 
     if (options.background) {
       const request = buildTaskRequest({
@@ -1619,7 +1741,10 @@ async function handleTask(argv) {
         resumeLast,
         resumeSessionId,
         jobId: job.id,
-        markViewedOnSuccess
+        markViewedOnSuccess,
+        taskChain,
+        sessionPolicy,
+        contract,
       });
       const { payload } = enqueueBackgroundTask(cwd, job, request);
       outputCommandResult(
@@ -1643,7 +1768,10 @@ async function handleTask(argv) {
           resumeSessionId,
           onSpawn,
           jobId: job.id,
-          onProgress: progress
+          onProgress: progress,
+          taskChain,
+          sessionPolicy,
+          contract,
         }),
       {
         json: options.json,
@@ -1830,6 +1958,104 @@ function handleResult(argv) {
       : renderStoredJobResult(job, storedJob),
     options.json
   );
+}
+
+function handleVerify(argv) {
+  const { options, positionals } = parseCommandInput(argv, {
+    valueOptions: ["cwd", "evidence"],
+    booleanOptions: ["json", "accept", "reject"],
+  });
+  if (Boolean(options.accept) === Boolean(options.reject)) {
+    throw new Error("Choose exactly one of --accept or --reject.");
+  }
+  const evidence = String(options.evidence ?? "").trim();
+  if (!evidence) {
+    throw new Error("Codex verification requires --evidence <summary>.");
+  }
+
+  const cwd = resolveCommandCwd(options);
+  const reference = positionals[0] ?? "";
+  if (!reference) throw new Error("verify requires a job id.");
+  const { workspaceRoot, job, state } = resolveResultJob(cwd, reference);
+  const storedJob = readStoredJob(workspaceRoot, job.id) ?? job;
+  if (state === "active" || storedJob.status !== "completed") {
+    throw new Error(`Job ${job.id} is not a completed Claude task.`);
+  }
+  if (storedJob.jobClass !== "task") {
+    throw new Error("Only delegated task jobs require Codex verification.");
+  }
+
+  const touchedFiles = storedJob.result?.touchedFiles ?? [];
+  const allowedFiles = storedJob.contract?.allowedFiles ?? [];
+  const outOfScopeFiles = findOutOfScopeFiles(
+    workspaceRoot,
+    allowedFiles,
+    touchedFiles
+  );
+  if (options.accept && outOfScopeFiles.length > 0) {
+    throw new Error(
+      `Cannot accept: Claude touched files outside the contract: ${outOfScopeFiles.join(", ")}`
+    );
+  }
+
+  const verification = {
+    status: options.accept ? "accepted" : "rejected",
+    verifiedAt: nowIso(),
+    evidence,
+    outOfScopeFiles,
+  };
+  patchJob(workspaceRoot, job.id, { codexVerification: verification });
+  appendDelegationAudit(workspaceRoot, {
+    event: "codex-verification",
+    jobId: job.id,
+    taskChain: storedJob.taskChain ?? null,
+    ...verification,
+  });
+
+  const payload = {
+    jobId: job.id,
+    codexVerification: verification,
+    auditFile: resolveDelegationAuditPath(workspaceRoot),
+  };
+  const rendered =
+    `[Codex verification]\nJob: ${job.id}\n` +
+    `Status: ${verification.status}\nEvidence: ${evidence}\n` +
+    `Audit: ${payload.auditFile}\n`;
+  outputCommandResult(payload, rendered, options.json);
+}
+
+function handleSessions(argv) {
+  const { options } = parseCommandInput(argv, {
+    valueOptions: ["cwd", "reset"],
+    booleanOptions: ["json"],
+  });
+  const cwd = resolveCommandCwd(options);
+  const workspaceRoot = resolveCommandWorkspace({ cwd });
+  if (options.reset) {
+    const taskChain = normalizeTaskChain(options.reset);
+    const removed = clearTaskChainSession(workspaceRoot, taskChain);
+    appendDelegationAudit(workspaceRoot, {
+      event: "task-chain-reset",
+      taskChain,
+      removed,
+    });
+  }
+  const registry = loadTaskChainRegistry(workspaceRoot);
+  const payload = {
+    workspaceRoot,
+    auditFile: resolveDelegationAuditPath(workspaceRoot),
+    ...registry,
+  };
+  const entries = Object.entries(registry.taskChains);
+  const rendered = entries.length
+    ? `${entries
+        .map(
+          ([key, value]) =>
+            `${key}: ${value.sessionId} (updated ${value.updatedAt ?? "unknown"})`
+        )
+        .join("\n")}\n`
+    : "No task-chain Claude sessions are registered.\n";
+  outputCommandResult(payload, rendered, options.json);
 }
 
 function handleTaskResumeCandidate(argv) {
@@ -2045,6 +2271,10 @@ async function main() {
     case "task":
       await handleTask(argv);
       break;
+    case "delegate":
+      // Delegated leaf work defaults to the fast model; explicit user flags win.
+      await handleTask(["--model", "haiku", "--write", ...argv]);
+      break;
     case "task-worker":
       await handleTaskWorker(argv);
       break;
@@ -2056,6 +2286,12 @@ async function main() {
       break;
     case "result":
       handleResult(argv);
+      break;
+    case "verify":
+      handleVerify(argv);
+      break;
+    case "sessions":
+      handleSessions(argv);
       break;
     case "session-routing-context":
       handleSessionRoutingContext(argv);

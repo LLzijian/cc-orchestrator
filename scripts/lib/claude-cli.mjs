@@ -16,7 +16,31 @@ import { fileURLToPath } from "node:url";
 import { normalizePathSlashes, resolvePluginRuntimeRoot } from "./codex-paths.mjs";
 import { getProcessIdentity, validateProcessIdentity } from "./process.mjs";
 
-const CLAUDE_BIN = "claude";
+function resolveClaudeBinary() {
+  const explicit = process.env.CC_ORCHESTRATOR_CLAUDE_BIN?.trim();
+  if (explicit) return explicit;
+  if (process.platform !== "win32") return "claude";
+
+  const candidates = [
+    process.env.APPDATA
+      ? path.join(
+          process.env.APPDATA,
+          "npm",
+          "node_modules",
+          "@anthropic-ai",
+          "claude-code",
+          "bin",
+          "claude.exe"
+        )
+      : null,
+    process.env.USERPROFILE
+      ? path.join(process.env.USERPROFILE, ".local", "bin", "claude.exe")
+      : null,
+  ].filter(Boolean);
+  return candidates.find((candidate) => fs.existsSync(candidate)) ?? "claude.exe";
+}
+
+const CLAUDE_BIN = resolveClaudeBinary();
 export const MAX_STREAM_PARSER_UNKNOWN_EVENTS = 50;
 export const MAX_STREAM_PARSER_PARSE_ERRORS = 50;
 export const MAX_STREAM_PARSER_TOOL_USES = 256;
@@ -128,6 +152,7 @@ export class StreamParser {
       unresolvedParseErrors: 0,
       toolUses: [],
       touchedFiles: [],
+      modelUsage: null,
     };
   }
 
@@ -164,6 +189,9 @@ export class StreamParser {
           return this._handleSystemEvent(event);
         case "result":
           this.state.receivedTerminalEvent = true;
+          if (event.modelUsage && typeof event.modelUsage === "object") {
+            this.state.modelUsage = event.modelUsage;
+          }
           if (event.result) {
             this.state.finalMessage = mergeTerminalResultText(
               this.state.finalMessage,
@@ -581,10 +609,12 @@ export function pruneStaleReviewMcpConfigs(options = {}) {
 // Model & Effort Mapping
 // ---------------------------------------------------------------------------
 
+// Preserve Claude CLI aliases so user/provider settings such as
+// ANTHROPIC_DEFAULT_HAIKU_MODEL remain authoritative. Full model IDs still pass through.
 export const MODEL_ALIASES = new Map([
-  ["opus", "claude-opus-4-7[1m]"],
-  ["sonnet", "claude-sonnet-4-6[1m]"],
-  ["haiku", "claude-haiku-4-5"],
+  ["opus", "opus"],
+  ["sonnet", "sonnet"],
+  ["haiku", "haiku"],
 ]);
 
 export const EFFORT_ALIASES = {
@@ -773,6 +803,7 @@ export async function runClaudeTurn(cwd, prompt, options = {}) {
         structuredOutput: parser.state.structuredOutput,
         toolUses: parser.state.toolUses,
         touchedFiles: parser.state.touchedFiles,
+        modelUsage: parser.state.modelUsage,
         stderr,
         pid: proc.pid,
         pidIdentity,
@@ -789,6 +820,7 @@ export async function runClaudeTurn(cwd, prompt, options = {}) {
         structuredOutput: null,
         toolUses: [],
         touchedFiles: [],
+        modelUsage: null,
         stderr: err.message,
         pid: proc.pid,
         pidIdentity,
@@ -825,6 +857,7 @@ export async function runClaudeReview(cwd, prompt, options = {}) {
     result: result.finalMessage,
     structuredOutput: result.structuredOutput ?? null,
     sessionId: result.sessionId,
+    modelUsage: result.modelUsage ?? null,
     stderr: result.stderr,
     pid: result.pid,
     pidIdentity: result.pidIdentity,

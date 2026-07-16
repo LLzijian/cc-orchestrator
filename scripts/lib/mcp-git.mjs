@@ -16,7 +16,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 export const MCP_PROTOCOL_VERSION = "2024-11-05";
-export const MCP_SERVER_NAME = "cc-plugin-codex-git";
+export const MCP_SERVER_NAME = "cc-orchestrator-git";
 export const MCP_SERVER_VERSION = "1.0.0";
 export const MAX_OUTPUT_BYTES = 64 * 1024 * 1024;
 export const MAX_STDIN_BUFFER_BYTES = 1 * 1024 * 1024;

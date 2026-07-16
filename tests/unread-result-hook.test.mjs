@@ -411,7 +411,7 @@ test("skips explicit status/result prompts and viewed jobs", () => {
       hook_event_name: "UserPromptSubmit",
       cwd: testEnv.workspaceDir,
       session_id: "session-a",
-      prompt: "$cc:status",
+      prompt: "$cc-orchestrator:status",
     });
     assert.equal(explicitOutput, "");
     assert.equal(readJob(testEnv, "task-b").notifiedAt, undefined);

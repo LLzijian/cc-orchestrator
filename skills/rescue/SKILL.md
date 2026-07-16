@@ -1,6 +1,6 @@
 ---
 name: rescue
-description: 'Delegate a substantial diagnosis, implementation, or follow-up task to Claude Code through the tracked-job runtime. Args: --background, --wait, --resume, --resume-last, --fresh, --write, --model <model>, --effort <low|medium|high|xhigh|max>, --prompt-file <path>, [task text]. Defaults to opus + xhigh effort. Use when Claude should investigate or change things, not when the user only wants review findings.'
+description: 'Delegate a substantial diagnosis, implementation, or follow-up task to Claude Code through the tracked-job runtime. Supports background/wait, resume/fresh, write mode, model and effort selection, prompt files, and task text. Use when Claude should own substantial follow-through work.'
 ---
 
 # Claude Code Rescue
@@ -12,7 +12,7 @@ Foreground rescue responses must be that subagent's output verbatim.
 
 Use this skill when the user wants Claude Code to investigate, implement, or continue substantial work in this repository.
 
-Prefer `$cc:rescue` when the user wants Claude Code to diagnose the issue, validate a risky change by actually editing or testing, apply fixes from a prior review, or carry a task forward across multiple steps.
+Prefer `$cc-orchestrator:rescue` when the user wants Claude Code to diagnose the issue, validate a risky change by actually editing or testing, apply fixes from a prior review, or carry a task forward across multiple steps.
 Do not use rescue for "just review this diff" unless the user also wants follow-through work beyond review findings.
 Do not use rescue merely because the main Codex thread plans to fix things after combining its own review with a separate Claude review. Rescue is only the right delegation when Claude itself is supposed to investigate, edit, test, or otherwise own the follow-through work.
 
@@ -25,7 +25,7 @@ Raw slash-command arguments:
 Supported arguments: `--background`, `--wait`, `--resume`, `--resume-last`, `--fresh`, `--write`, `--model <model>`, `--effort <low|medium|high|xhigh|max>`, `--prompt-file <path>`, plus free-text task text
 
 Main-thread routing rules:
-- If the user explicitly invoked `$cc:rescue` or `Claude Code Rescue`, do not keep the work in the main Codex thread. Delegate it.
+- If the user explicitly invoked `$cc-orchestrator:rescue` or `Claude Code Rescue`, do not keep the work in the main Codex thread. Delegate it.
 - If the user did not supply a task, ask what Claude Code should investigate or fix.
 - Treat `--background` and `--wait` as execution controls, not task text.
 - `--background` and `--wait` are Codex-side execution controls only. Never forward either flag to `claude-companion.mjs task`.
@@ -71,7 +71,7 @@ Subagent launch:
 - If the free-text task begins with `/`, preserve it verbatim in the spawned subagent request. Do not strip the slash or rewrite it into a local Codex command.
 - Before spawning the built-in child, capture the task job id plus routing context in one call:
   `node "<plugin-root>/scripts/claude-companion.mjs" background-routing-context --kind task --json`
-- If that helper returns a non-empty `ownerSessionId`, include `--owner-session-id <owner-session-id>` in the companion command so tracked Claude Code jobs stay attached to the user-facing parent session for `$cc:status` / `$cc:result`.
+- If that helper returns a non-empty `ownerSessionId`, include `--owner-session-id <owner-session-id>` in the companion command so tracked Claude Code jobs stay attached to the user-facing parent session for `$cc-orchestrator:status` / `$cc-orchestrator:result`.
 - If it returns an empty `ownerSessionId`, omit `--owner-session-id` entirely. Never leave an empty routing placeholder such as `--owner-session-id  --job-id`.
 - If that helper returns a non-empty `jobId`, pass it into the companion command as an internal `--job-id <reserved-job-id>` routing flag.
 - Add an internal companion routing flag that reflects whether the user will see this result in the current turn:
@@ -132,9 +132,9 @@ Subagent launch:
   - if the parent provided a non-empty parent thread id, do not silently drop the completion notification path from the child prompt
   - that `send_input` message should use a short user-facing template that steers the parent toward explicit result retrieval instead of inlining the raw result
   - if a reserved companion job id is available, use this exact high-level shape for the notification message:
-    `Background Claude Code rescue finished. Open it with $cc:result <reserved-job-id>.`
+    `Background Claude Code rescue finished. Open it with $cc-orchestrator:result <reserved-job-id>.`
   - if no reserved job id is available, fall back to:
-    `Background Claude Code rescue finished. Inspect it with $cc:status first, then use $cc:result for the finished job you want to open.`
+    `Background Claude Code rescue finished. Inspect it with $cc-orchestrator:status first, then use $cc-orchestrator:result for the finished job you want to open.`
   - if the parent thread is already busy with unrelated work, prefer these steering messages over embedding the raw result text
   - do not embed the raw Claude result inside the notification message
   - do not include any other prose in that notification message
@@ -153,5 +153,5 @@ Execution:
 
 Output:
 - Foreground: return the subagent's companion stdout exactly as-is. Do not paraphrase, summarize, or add commentary before or after it.
-- Background: do not wait for the subagent output. After launching it, tell the user `Claude Code rescue started in the background. Check the subagent session or $cc:status for progress, and once it's done, we will let you know to see the results.`
-- If the companion reports missing setup or authentication, direct the user to `$cc:setup`.
+- Background: do not wait for the subagent output. After launching it, tell the user `Claude Code rescue started in the background. Check the subagent session or $cc-orchestrator:status for progress, and once it's done, we will let you know to see the results.`
+- If the companion reports missing setup or authentication, direct the user to `$cc-orchestrator:setup`.

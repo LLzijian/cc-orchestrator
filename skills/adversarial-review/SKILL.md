@@ -1,17 +1,17 @@
 ---
 name: adversarial-review
-description: 'Run a design-challenging Claude Code review of local git changes in this repository. Args: --wait, --background, --base <ref>, --scope <auto|working-tree|branch>, --model <model>, --effort <low|medium|high|xhigh|max>, [focus text]. Defaults to opus + xhigh effort. Use only when the user wants stronger scrutiny than a normal review, such as explicit tradeoff challenge, risky-change review, or custom focus text.'
+description: 'Run a design-challenging Claude Code review of local git changes in this repository. Supports wait/background, base and scope selection, model and effort selection, plus focus text. Defaults to opus with xhigh effort. Use only when the user wants stronger scrutiny than a normal review.'
 ---
 
 # Claude Code Adversarial Review
 
 Use this skill when the user wants Claude Code to challenge the implementation approach, design choices, assumptions, or tradeoffs in this repository.
 
-Do not treat `$cc:adversarial-review` as the default review path. Use it only when the user explicitly wants stronger scrutiny than a normal code review.
+Do not treat `$cc-orchestrator:adversarial-review` as the default review path. Use it only when the user explicitly wants stronger scrutiny than a normal code review.
 Good triggers include requests to challenge the design, challenge tradeoffs, pressure-test a risky change, question whether a migration/config/template change really removed the risk, or honor custom focus text that asks for harsher review.
-If the user wants Claude Code to go beyond review and perform investigation, validation edits, or implementation work, route to `$cc:rescue` instead.
-If the user asks for a local review plus a separate Claude background review and then wants the main Codex thread to aggregate the findings and apply fixes, keep the delegated Claude portion on `$cc:review` unless the user explicitly asks for the adversarial angle.
-Unlike `$cc:review`, this skill accepts custom focus text after the flags. The moment the user wants to steer Claude toward a specific angle or risk question, prefer `$cc:adversarial-review`.
+If the user wants Claude Code to go beyond review and perform investigation, validation edits, or implementation work, route to `$cc-orchestrator:rescue` instead.
+If the user asks for a local review plus a separate Claude background review and then wants the main Codex thread to aggregate the findings and apply fixes, keep the delegated Claude portion on `$cc-orchestrator:review` unless the user explicitly asks for the adversarial angle.
+Unlike `$cc-orchestrator:review`, this skill accepts custom focus text after the flags. The moment the user wants to steer Claude toward a specific angle or risk question, prefer `$cc-orchestrator:adversarial-review`.
 
 Resolve `<plugin-root>` as two directories above this `SKILL.md` file. Always run the companion from that active plugin root:
 `node "<plugin-root>/scripts/claude-companion.mjs" adversarial-review ...`
@@ -25,7 +25,7 @@ Rules:
 - This skill is review-only. Do not fix issues, apply patches, or suggest that you are about to make changes.
 - Before launching the review, stay in read-only inspection mode: inspect git status and diff stats only, then ask at most one user question about whether to wait or run in background.
 - Preserve the user's scope flags and custom focus text exactly.
-- Use the same review target selection as `$cc:review`.
+- Use the same review target selection as `$cc-orchestrator:review`.
 
 Execution mode rules:
 - If the raw arguments include `--wait`, do not ask. Run in the foreground.
@@ -47,10 +47,10 @@ Argument handling:
 - Preserve the user's arguments exactly.
 - Treat `--wait` and `--background` as Codex-side execution controls only. Strip them before calling the companion command.
 - Do not weaken the adversarial framing or rewrite the user's focus text.
-- `$cc:adversarial-review` uses the same review target selection as `$cc:review`.
+- `$cc-orchestrator:adversarial-review` uses the same review target selection as `$cc-orchestrator:review`.
 - It supports working-tree review, branch review, and `--base <ref>`.
 - It does not support `--scope staged` or `--scope unstaged`.
-- Unlike `$cc:review`, it can still take extra focus text after the flags.
+- Unlike `$cc-orchestrator:review`, it can still take extra focus text after the flags.
 - The companion review process itself always runs in the foreground. Background mode only changes how Codex launches that command.
 - For the detailed execution contract, treat the internal runtime reference at `../../internal-skills/review-runtime/runtime.md` as supporting guidance only. It is an internal reference document, not a public skill to invoke.
 
@@ -105,14 +105,14 @@ Background flow:
   - that `send_input` call should use the exact tool shape `send_input({ target: <parent-thread-id>, message: <steering-message> })` with no extra prose payload
   - if the parent provided a non-empty parent thread id, do not silently drop the completion notification path from the child prompt
   - if a reserved review job id is available, use this exact notification message:
-    `Background Claude Code adversarial review finished. Open it with $cc:result <reserved-job-id>.`
+    `Background Claude Code adversarial review finished. Open it with $cc-orchestrator:result <reserved-job-id>.`
   - otherwise fall back to:
-    `Background Claude Code adversarial review finished. Inspect it with $cc:status first, then use $cc:result for the finished job you want to open.`
+    `Background Claude Code adversarial review finished. Inspect it with $cc-orchestrator:status first, then use $cc-orchestrator:result for the finished job you want to open.`
   - that `send_input` message should use one of those exact steering messages instead of inlining the raw review result
   - use these steering messages instead of embedding the raw review result in the notification
   - do not embed the raw Claude result inside the notification message
   - do not include any other prose in that notification message
   - use that same steering message as the child's own final assistant message instead of echoing the raw review result
 - Do not wait for completion in this turn.
-- After launching, tell the user: `Claude Code adversarial review started in the background. Check the subagent session or $cc:status for progress, and once it's done, we will let you know to see the results.`
+- After launching, tell the user: `Claude Code adversarial review started in the background. Check the subagent session or $cc-orchestrator:status for progress, and once it's done, we will let you know to see the results.`
 - Do not fix anything mentioned in the review output.
